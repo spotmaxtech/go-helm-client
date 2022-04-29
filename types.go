@@ -134,4 +134,5 @@ type ChartSpec struct {
 	// PostRenderer to run on the Helm Chart
 	// +optional
 	PostRenderer postrender.PostRenderer `json:"postRenderer,omitempty"`
+	Sets         []string                `json:"sets,omitempty"`
 }

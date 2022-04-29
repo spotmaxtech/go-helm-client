@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -19,6 +20,7 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
+	"helm.sh/helm/v3/pkg/strvals"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -304,6 +306,16 @@ func (c *HelmClient) install(ctx context.Context, spec *ChartSpec) (*release.Rel
 		return nil, err
 	}
 
+	if values == nil {
+		values = make(map[string]interface{})
+	}
+	// User specified a value via --set-string
+	for _, value := range spec.Sets {
+		if err := strvals.ParseInto(value, values); err != nil {
+			return nil, errors.New("failed parsing --set-string data")
+		}
+	}
+
 	if c.linting {
 		err = c.lint(chartPath, values)
 		if err != nil {
@@ -352,6 +364,16 @@ func (c *HelmClient) upgrade(ctx context.Context, spec *ChartSpec) (*release.Rel
 		return nil, err
 	}
 
+	if values == nil {
+		values = make(map[string]interface{})
+	}
+
+	// User specified a value via --set-string
+	for _, value := range spec.Sets {
+		if err := strvals.ParseInto(value, values); err != nil {
+			return nil, errors.New("failed parsing --set-string data")
+		}
+	}
 	if c.linting {
 		err = c.lint(chartPath, values)
 		if err != nil {
